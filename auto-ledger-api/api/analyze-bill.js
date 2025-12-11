@@ -1,39 +1,47 @@
 import { createClient } from '@supabase/supabase-js';
 
 // --- 配置区域 ---
-// 为了安全，建议在 Vercel 后台环境变量设置，但为了你方便，这里先写死
 const SILICON_FLOW_KEY = process.env.SILICON_FLOW_KEY || "sk-xxixqhxkjktxixlixpzhcathfiqqarccplxsswreltvihibx";
 const SUPABASE_URL = process.env.SUPABASE_URL || "https://lsggbiatbucdhhrgftra.supabase.co";
-// 🔴 已填入你的 service_role key (拥有绕过 RLS 写入数据库的权限)
+// 🔴 已填入你的 service_role key
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxzZ2diaWF0YnVjZGhocmdmdHJhIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2Mzg5MDQ3MiwiZXhwIjoyMDc5NDY2NDcyfQ.4D7v0spqEHFZ8tkgOLKrVg7dYGwmYaFW_yAQNxGnWgk"; 
 
 export default async function handler(req, res) {
-  // 1. 处理跨域 (CORS) - 允许快捷指令调用
+  // 1. 允许跨域 (CORS) - 让快捷指令能访问
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-  res.setHeader(
-    'Access-Control-Allow-Headers',
-    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
-  );
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,POST');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   // 处理预检请求
   if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
+    return res.status(200).end();
+  }
+
+  // ✅ 新增：浏览器访问测试 (GET)
+  if (req.method === 'GET') {
+    return res.status(200).json({ 
+      status: "active", 
+      message: "API 服务正常运行中！请使用 POST 方法发送图片数据进行记账。" 
+    });
+  }
+
+  // 只允许 POST
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
   // 2. 获取参数
   const { imageBase64 } = req.body;
 
   if (!imageBase64) {
-    return res.status(400).json({ success: false, message: "未接收到图片数据" });
+    return res.status(400).json({ success: false, message: "未接收到图片数据 (imageBase64 is missing)" });
   }
 
   try {
-    console.log("开始调用 AI...");
+    console.log("开始调用硅基流动 AI...");
 
-    // 3. 调用硅基流动
+    // 3. 调用硅基流动 API
     const aiResponse = await fetch("https://api.siliconflow.cn/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -57,14 +65,25 @@ export default async function handler(req, res) {
     });
 
     const aiData = await aiResponse.json();
-    if (aiData.error) throw new Error(aiData.error.message);
+    
+    // 检查 AI 报错
+    if (aiData.error) {
+        console.error("AI API Error:", aiData.error);
+        throw new Error(`AI API Error: ${aiData.error.message}`);
+    }
 
     const rawContent = aiData.choices?.[0]?.message?.content;
-    if (!rawContent) throw new Error("AI 返回为空");
+    if (!rawContent) throw new Error("AI 返回内容为空");
 
     // 4. 清洗 JSON
     const jsonStr = rawContent.replace(/```json/g, '').replace(/```/g, '').trim();
-    const billData = JSON.parse(jsonStr);
+    let billData;
+    try {
+        billData = JSON.parse(jsonStr);
+    } catch (e) {
+        console.error("JSON Parse Error:", jsonStr);
+        throw new Error("AI 返回的数据不是有效的 JSON");
+    }
 
     // 5. 写入 Supabase
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
@@ -76,12 +95,15 @@ export default async function handler(req, res) {
       note: billData.note || 'AI 记账'
     }]);
 
-    if (error) throw error;
+    if (error) {
+        console.error("Supabase Error:", error);
+        throw error;
+    }
 
     return res.status(200).json({ success: true, data: billData, message: "记账成功！" });
 
   } catch (err) {
-    console.error(err);
+    console.error("Server Error:", err);
     return res.status(500).json({ success: false, error: err.message });
   }
 }
