@@ -62,7 +62,7 @@ export default async function handler(req, res) {
               { 
                   type: "text", 
                   // 🔥 核心修改：明确告诉 AI 只能选哪些词
-                  text: `分析账单图片。提取：amount(金额数字), merchant(商户名), category(必须严格从以下列表中选择一个最匹配的: [${STANDARD_CATEGORIES.join(', ')}]), date(YYYY-MM-DD), note(简短备注)。返回纯JSON。` 
+                  text: `分析账单图片。提取：amount(金额数字), merchant(商户名), category(必须严格从以下列表中选择一个最匹配的: [${STANDARD_CATEGORIES.join(', ')}]), date(yyyy-MM-dd HH:mm:ss,无则为当前时间), note(简短备注)。返回纯JSON。` 
               }
             ]
           }
@@ -104,3 +104,4 @@ export default async function handler(req, res) {
     return res.status(500).json({ success: false, error: err.message });
   }
 }
+
