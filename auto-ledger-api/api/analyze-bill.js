@@ -44,7 +44,12 @@ export default async function handler(req, res) {
 
   try {
     console.log("开始调用 AI...");
-
+     const now = new Date();
+   // 格式化为：2023-10-25 14:30:00 这种格式
+   const currentDateTimeStr = now.toLocaleString('zh-CN', { 
+    timeZone: 'Asia/Shanghai', 
+    hour12: false 
+   }).replace(/\//g, '-');
     // 3. 调用 AI (优化了提示词)
     const aiResponse = await fetch("https://api.siliconflow.cn/v1/chat/completions", {
       method: "POST",
@@ -62,7 +67,7 @@ export default async function handler(req, res) {
               { 
                   type: "text", 
                   // 🔥 核心修改：明确告诉 AI 只能选哪些词
-                  text: `分析账单图片。提取：amount(金额数字), merchant(商户名), category(必须严格从以下列表中选择一个最匹配的: [${STANDARD_CATEGORIES.join(', ')}]), date(yyyy-MM-dd HH:mm:ss,页面获取不到就自动填充为当前北京时间), note(简短备注)。返回纯JSON。` 
+                  text: `分析账单图片。提取：amount(金额数字), merchant(商户名), category(必须严格从以下列表中选择一个最匹配的: [${STANDARD_CATEGORIES.join(', ')}]), date(yyyy-MM-dd HH:mm:ss,如果图片中完全没有日期，请直接返回 "${currentDateTimeStr}"), note(简短备注)。返回纯JSON。` 
               }
             ]
           }
@@ -104,5 +109,6 @@ export default async function handler(req, res) {
     return res.status(500).json({ success: false, error: err.message });
   }
 }
+
 
 
