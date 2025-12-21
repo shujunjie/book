@@ -1,10 +1,12 @@
 import { createClient } from '@supabase/supabase-js';
 
 // --- 配置区域 ---
-const SILICON_FLOW_KEY = process.env.SILICON_FLOW_KEY || "你的密钥";
-const SUPABASE_URL = process.env.SUPABASE_URL || "你的URL";
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "你的ServiceKey"; 
 
+const SILICON_FLOW_KEY = process.env.SILICON_FLOW_KEY || "sk-xxixqhxkjktxixlixpzhcathfiqqarccplxsswreltvihibx";
+
+const SUPABASE_URL = process.env.SUPABASE_URL || "https://lsggbiatbucdhhrgftra.supabase.co";
+
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxzZ2diaWF0YnVjZGhocmdmdHJhIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2Mzg5MDQ3MiwiZXhwIjoyMDc5NDY2NDcyfQ.4D7v0spqEHFZ8tkgOLKrVg7dYGwmYaFW_yAQNxGnWgk"; 
 // 🟢 定义标准分类
 const STANDARD_CATEGORIES = ['餐饮', '交通', '购物', '娱乐', '居住', '医疗', '工资', '其他'];
 
@@ -144,3 +146,4 @@ export default async function handler(req, res) {
         return res.status(500).json({ success: false, error: err.message });
     }
 }
+
